@@ -1,48 +1,65 @@
+import threading
 import time
 import requests
-import json
-from flask import Flask, jsonify, render_template
 from geopy.distance import geodesic
 
-app = Flask(__name__)
+LATITUDE = 41.979654145979715
+LONGITUDE = -87.90363070440677
+RADIUS = 5
+POLL_INTERVAL = 8  # seconds between API calls
 
-@app.route("/")
-def index():
-    return """
-    <!DOCTYPE html>
-    <html>
-    <head><title>Aircraft Tracker</title>
-    <link rel="stylesheet" href="/static/style.css"></head>
-    <body>
-      <h1>Aircraft Tracker</h1>
-      <div id="aircraft-list">Loading...</div>
-      <script src="/static/display.js"></script>
-    </body>
-    </html>
-    """
+latest_data = {"planes": [], "updated_at": None}
+_data_lock = threading.Lock()
+_started = False
 
 
-@app.route("/data")
-def get_aircraft_data():
-    latitude = 41.979654145979715
-    longitude = -87.90363070440677
-    radius = 5
-
-    url = f"https://api.adsb.lol/v2/lat/{latitude}/lon/{longitude}/dist/{radius}"
-    
+def fetch_aircraft():
+    url = f"https://api.adsb.lol/v2/lat/{LATITUDE}/lon/{LONGITUDE}/dist/{RADIUS}"
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
     except requests.RequestException as e:
         print(f"Request failed: {e}")
         return None
-    
+
     planes = []
-    for plane in response.json().get('ac'):
-        distance = geodesic((latitude, longitude), (plane['lat'], plane['lon'])).nautical
-        plane['distance_from_source'] = distance
-        planes.append(plane)
+    for plane in response.json().get("ac", []):
+        if "lat" not in plane or "lon" not in plane:
+            continue
+        distance = geodesic((LATITUDE, LONGITUDE), (plane["lat"], plane["lon"])).nautical
 
-    return sorted(planes, key=lambda x: x['distance_from_source'])
+        # Only keep the fields the table needs, and force safe types
+        clean_plane = {
+            "flight": str(plane.get("flight", "")).strip(),
+            "lat": plane["lat"],
+            "lon": plane["lon"],
+            "alt_baro": plane.get("alt_baro", ""),
+            "distance_from_source": round(distance, 2),
+        }
+        planes.append(clean_plane)
 
-open("aircraft.json", "w").write(json.dumps(get_aircraft_data(), indent=4))
+    return sorted(planes, key=lambda x: x["distance_from_source"])
+
+
+def _poll_loop():
+    while True:
+        planes = fetch_aircraft()
+        if planes is not None:
+            with _data_lock:
+                latest_data["planes"] = planes
+                latest_data["updated_at"] = time.strftime("%H:%M:%S")
+        time.sleep(POLL_INTERVAL)
+
+
+def get_latest():
+    """Thread-safe read of the current snapshot."""
+    with _data_lock:
+        return list(latest_data["planes"]), latest_data["updated_at"]
+
+
+def start_polling():
+    """Starts the background thread exactly once, even if called multiple times."""
+    global _started
+    if not _started:
+        threading.Thread(target=_poll_loop, daemon=True).start()
+        _started = True
