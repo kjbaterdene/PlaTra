@@ -11,7 +11,8 @@ def index():
     return """
     <!DOCTYPE html>
     <html>
-    <head><title>Aircraft Tracker</title></head>
+    <head><title>Aircraft Tracker</title>
+    <link rel="stylesheet" href="/static/style.css"></head>
     <body>
       <h1>Aircraft Tracker</h1>
       <div id="aircraft-list">Loading...</div>

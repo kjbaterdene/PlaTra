@@ -1,0 +1,25 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg-primary: #181b1f;
+  --bg-panel: #212327;
+  --border: #2c3235;
+  --text-primary: #d8d9da;
+  --text-secondary: #8e9297;
+  --accent-blue: #3b82f6;
+  --accent-green: #37b365;
+  --accent-yellow: #e0b400;
+  --accent-red: #e0524d;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'Roboto Mono', monospace;
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+}
