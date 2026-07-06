@@ -1,2 +1,21 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# virtual environments
+venv/
+.env/
+
+# uv / tooling
+.uv/
+
+# IDEs
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
 aircraft.json
-__pycache__
