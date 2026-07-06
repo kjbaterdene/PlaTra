@@ -1,5 +1,6 @@
 import threading
 import time
+import math
 import requests
 from geopy.distance import geodesic
 
@@ -26,20 +27,42 @@ def fetch_aircraft():
     for plane in response.json().get("ac", []):
         if "lat" not in plane or "lon" not in plane:
             continue
-        distance = geodesic((LATITUDE, LONGITUDE), (plane["lat"], plane["lon"])).nautical
+        distance = geodesic(
+            (LATITUDE, LONGITUDE), (plane["lat"], plane["lon"])
+        ).nautical
 
-        # Only keep the fields the table needs, and force safe types
+        # Calculate bearing
+        bearing = compute_bearing(LATITUDE, LONGITUDE, plane["lat"], plane["lon"])
+
+        # Only save needed data
         clean_plane = {
+            "hex": plane.get("hex", ""),
             "flight": str(plane.get("flight", "")).strip(),
+            "r": plane.get("r", ""),
+            "t": plane.get("t", ""),
             "lat": plane["lat"],
             "lon": plane["lon"],
-            "alt_baro": plane.get("alt_baro", ""),
+            "true_heading": plane.get("true_heading", ""),
             "distance_from_source": round(distance, 2),
+            "bearing": round(bearing, 1),
+            "compass": bearing_to_compass(bearing),
         }
-        
+
         planes.append(clean_plane)
 
     return sorted(planes, key=lambda x: x["distance_from_source"])
+
+def compute_bearing(lat1, lon1, lat2, lon2):
+    lat1, lat2 = math.radians(lat1), math.radians(lat2)
+    diff_lon = math.radians(lon2 - lon1)
+    x = math.sin(diff_lon) * math.cos(lat2)
+    y = math.cos(lat1) * math.sin(lat2) - math.sin(lat1) * math.cos(lat2) * math.cos(diff_lon)
+    return (math.degrees(math.atan2(x, y)) + 360) % 360
+
+
+def bearing_to_compass(bearing):
+    dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+    return dirs[round(bearing / 45) % 8]
 
 
 def _poll_loop():
