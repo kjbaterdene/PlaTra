@@ -36,6 +36,7 @@ def fetch_aircraft():
             "alt_baro": plane.get("alt_baro", ""),
             "distance_from_source": round(distance, 2),
         }
+        
         planes.append(clean_plane)
 
     return sorted(planes, key=lambda x: x["distance_from_source"])
