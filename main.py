@@ -1,6 +1,7 @@
 import threading
 import time
 import math
+import json
 import requests
 from geopy.distance import geodesic
 
@@ -13,8 +14,16 @@ latest_data = {"planes": [], "updated_at": None}
 _data_lock = threading.Lock()
 _started = False
 
+# Open basic plane data
+with open(r"plane_codes/mapped_basic_plane_codes.json", "r") as f:
+    BASIC_DB = json.load(f)
 
-def fetch_aircraft():
+# Open extensive plane data
+with open(r"plane_codes/extensive_plane_codes.json", "r") as f:
+    EXT_DB = json.load(f)
+
+
+def fetch_local_aircraft():
     url = f"https://api.adsb.lol/v2/lat/{LATITUDE}/lon/{LONGITUDE}/dist/{RADIUS}"
     try:
         response = requests.get(url, timeout=10)
@@ -34,6 +43,9 @@ def fetch_aircraft():
         # Calculate bearing
         bearing = compute_bearing(LATITUDE, LONGITUDE, plane["lat"], plane["lon"])
 
+        # Grab data from basic map
+        plane_data = fetch_plane_data(plane.get("t", ""))
+
         # Only save needed data
         clean_plane = {
             "hex": plane.get("hex", ""),
@@ -46,8 +58,8 @@ def fetch_aircraft():
             "distance_from_source": round(distance, 2),
             "bearing": round(bearing, 1),
             "compass": bearing_to_compass(bearing),
+            "plane_data": plane_data
         }
-
         planes.append(clean_plane)
 
     return sorted(planes, key=lambda x: x["distance_from_source"])
@@ -65,9 +77,27 @@ def bearing_to_compass(bearing):
     return dirs[round(bearing / 45) % 8]
 
 
+def fetch_plane_data(icao):
+    if not icao:
+        return None
+    plane_data = {}
+    basic_data = BASIC_DB.get(icao)
+    extensive_data = EXT_DB.get(icao)
+    if basic_data:
+        plane_data['name'] = basic_data["Model_FAA"]
+        plane_data['manufacturer'] = basic_data["Manufacturer"]
+        plane_data['engine'] = f"{basic_data["Physical_Class_Engine"]} ({basic_data["Num_Engines"]})"
+        plane_data['class'] = basic_data["Class"]
+        plane_data['Weight'] = basic_data["FAA_Weight"]
+    elif extensive_data and extensive_data.get("model"):
+        plane_data['name'] = extensive_data["model"]
+    
+    return plane_data
+    
+
 def _poll_loop():
     while True:
-        planes = fetch_aircraft()
+        planes = fetch_local_aircraft()
         if planes is not None:
             with _data_lock:
                 latest_data["planes"] = planes
@@ -87,3 +117,5 @@ def start_polling():
     if not _started:
         threading.Thread(target=_poll_loop, daemon=True).start()
         _started = True
+
+fetch_local_aircraft()
