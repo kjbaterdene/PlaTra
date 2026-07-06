@@ -118,4 +118,5 @@ def start_polling():
         threading.Thread(target=_poll_loop, daemon=True).start()
         _started = True
 
-fetch_local_aircraft()
+if __name__ == "__main__":
+    print(fetch_local_aircraft())
