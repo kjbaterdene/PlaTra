@@ -110,13 +110,13 @@ def build_radar_svg(planes):
     '''
 
 # Build page
-with ui.grid(columns=3).classes('w-full gap-3 p-4'):
-    with ui.card().classes('items-center justify-center'):
+with ui.grid(columns=6).classes('w-full gap-3 p-4'):
+    with ui.card().classes('col-span-2'):
         ui.label('AIRLINE').classes('panel-label')
         ui.icon('flight', size='42px').classes('text-white')
         logo_label = ui.label('—').classes('panel-label')
 
-    with ui.card():
+    with ui.card().classes('col-span-2'):
         ui.label('POSITION').classes('panel-label')
         lat_label = ui.label('Lat: —').classes('metric-value')
         lon_label = ui.label('Lon: —').classes('metric-value')
@@ -126,26 +126,27 @@ with ui.grid(columns=3).classes('w-full gap-3 p-4'):
 # Radar card, depricated bc it doesn't look good with slow updates
     """ with ui.card().classes('items-center justify-center p-2'):
         radar_html = ui.html(build_radar_svg([])) """
-    with ui.card():
+    with ui.card().classes('col-span-2 row-span-2'):
         ui.label('ATC').classes('panel-label')
 
+    with ui.card().classes('items-center justify-center'):
+        ui.label('LOOK').classes('panel-label')
+        heading_label = ui.label('N').classes('big-heading')
 
     with ui.card():
         ui.label('IDENTIFICATION').classes('panel-label')
         reg_label = ui.label('Reg: —').classes('metric-value')
         flight_label = ui.label('Flight: —').classes('metric-value')
 
-    with ui.card():
+    with ui.card().classes('col-span-2'):
         ui.label('AIRCRAFT').classes('panel-label')
-        model_label = ui.label('Model: —').classes('metric-value')
         mfr_label = ui.label('Mfr: —').classes('metric-value')
+        model_label = ui.label('Model: —').classes('metric-value')
         eng_label = ui.label('Engine: —').classes('metric-value')
 
-    with ui.card().classes('items-center justify-center'):
-        ui.label('LOOK').classes('panel-label')
-        heading_label = ui.label('N').classes('big-heading')
 
-    with ui.card().classes('col-span-3'):
+
+    with ui.card().classes('col-span-full'):
         ui.label('5 CLOSEST AIRCRAFT').classes('panel-label')
         columns = [
             {'name': 'flight', 'label': 'Flight', 'field': 'flight', 'align': 'left'},
