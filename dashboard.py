@@ -1,6 +1,7 @@
 # app.py
 from nicegui import ui
 import math
+from datetime import datetime
 from main import start_polling, get_latest
 
 start_polling()
@@ -76,59 +77,68 @@ def build_radar_svg(planes):
     )
 
     planes_svg = ''
-    # sort so overlapping labels stack predictably instead of randomly colliding
-    nearby = [p for p in planes if p['distance_from_source'] <= RANGE_NM][:6]
 
-    for idx, p in enumerate(nearby):
-        dist = p['distance_from_source']
+    if planes:
+        p = planes[0]  # closest plane
+
+        dist = min(p['distance_from_source'], RANGE_NM)
         bearing = p['bearing']
-        # give very close planes a minimum radius so they don't all collapse onto the center dot
+
         r = max(max_r * dist / RANGE_NM, 14)
         rad = math.radians(bearing)
+
         x = center + r * math.sin(rad)
         y = center - r * math.cos(rad)
+
         heading = p.get('true_heading') or bearing
-        label = p.get('flight') or p.get('r') or ''
 
-        # offset each label vertically by its index so clustered planes don't overlap text
-        label_y_offset = 10 + (idx % 3) * 11
-
-        planes_svg += (
+        planes_svg = (
             f'<g transform="translate({x},{y}) rotate({heading})">'
-            f'<path d="M0,-7 L4,5 L0,2 L-4,5 Z" fill="#73bf69"/></g>'
-            f'<text x="{x+7}" y="{y+label_y_offset}" fill="#d8d9da" font-size="9">{label}</text>'
+            f'<path d="M0,-7 L4,5 L0,2 L-4,5 Z" fill="#73bf69"/>'
+            f'</g>'
         )
+    return f'''
+    <svg
+        viewBox="0 0 {size} {size}"
+        width="100%"
+        height="100%"
+        preserveAspectRatio="xMidYMid meet">
+        {rings}
+        {crosshair}
+        {planes_svg}
+    </svg>
+    '''
 
-    return f'<svg width="{size}" height="{size}" viewBox="0 0 {size} {size}">{rings}{crosshair}{planes_svg}</svg>'
-
-
+# Build page
+with ui.card().classes('w-full gap-3 p-4'):
+    ui.label(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 with ui.grid(columns=3).classes('w-full gap-3 p-4'):
-    with ui.card().classes('h-40 items-center justify-center'):
+    with ui.card().classes('items-center justify-center'):
         ui.icon('flight', size='42px').classes('text-white')
         logo_label = ui.label('—').classes('panel-label')
 
-    with ui.card().classes('h-40'):
+    with ui.card():
         ui.label('POSITION').classes('panel-label')
         lat_label = ui.label('Lat: —').classes('metric-value')
         lon_label = ui.label('Lon: —').classes('metric-value')
         spd_label = ui.label('Speed: —').classes('metric-value')
         alt_label = ui.label('Alt: —').classes('metric-value')
 
-    with ui.card().classes('items-center justify-center p-2').style('width: 300px; height: 300px'):
+    with ui.card().classes('items-center justify-center p-2'):
         radar_html = ui.html(build_radar_svg([]))
 
-    with ui.card().classes('h-32'):
+    with ui.card():
         ui.label('IDENTIFICATION').classes('panel-label')
         reg_label = ui.label('Reg: —').classes('metric-value')
         flight_label = ui.label('Flight: —').classes('metric-value')
 
-    with ui.card().classes('h-32'):
+    with ui.card():
         ui.label('AIRCRAFT').classes('panel-label')
         model_label = ui.label('Model: —').classes('metric-value')
         mfr_label = ui.label('Mfr: —').classes('metric-value')
         eng_label = ui.label('Engine: —').classes('metric-value')
 
-    with ui.card().classes('h-32 items-center justify-center'):
+    with ui.card().classes('items-center justify-center'):
         ui.label('LOOK').classes('panel-label')
         heading_label = ui.label('N').classes('big-heading')
 
@@ -154,7 +164,7 @@ def refresh():
         closest = planes[0]
         pd = closest.get('plane_data') or {}
 
-        logo_label.text = closest.get('flight') or closest.get('r') or 'Unknown'
+        logo_label.text = closest.get('flight') or closest.get('r') or '—'
         lat_label.text = f"Lat: {closest['lat']:.4f}"
         lon_label.text = f"Lon: {closest['lon']:.4f}"
         spd_label.text = f"Speed: {closest.get('gs', '—')} kt"
@@ -163,9 +173,9 @@ def refresh():
         reg_label.text = f"Reg: {closest.get('r') or '—'}"
         flight_label.text = f"Flight: {closest.get('flight') or '—'}"
 
-        model_label.text = f"Model: {pd.get('name', '—')}"
-        mfr_label.text = f"Mfr: {pd.get('manufacturer', '—')}"
-        eng_label.text = f"Engine: {pd.get('engine', '—')}"
+        model_label.text = f"Model: {pd.get('name', '—').title() or '—'}"
+        mfr_label.text = f"Manufacturer: {pd.get('manufacturer', '—') or '—'}"
+        eng_label.text = f"Engine: {pd.get('engine', '—') or '—'}"
 
         heading_label.text = closest.get('compass', 'N')
 
@@ -173,7 +183,7 @@ def refresh():
     for p in planes[:5]:
         row = dict(p)
         pd = p.get('plane_data') or {}
-        row['name'] = pd.get('name', 'Unknown')
+        row['name'] = pd.get('name', '—')
         rows.append(row)
     table.rows = rows
     table.update()
@@ -181,4 +191,4 @@ def refresh():
 
 ui.timer(2.0, refresh)
 
-ui.run(title='Aircraft Tracker', dark=True)
+ui.run(title='Aircraft Tracker', dark=True, show=False)

@@ -8,7 +8,7 @@ from geopy.distance import geodesic
 LATITUDE = 41.979654145979715
 LONGITUDE = -87.90363070440677
 RADIUS = 5
-POLL_INTERVAL = 8  # seconds between API calls
+POLL_INTERVAL = 10  # seconds between API calls
 
 latest_data = {"planes": [], "updated_at": None}
 _data_lock = threading.Lock()
