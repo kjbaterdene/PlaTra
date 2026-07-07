@@ -34,7 +34,7 @@ def fetch_local_aircraft():
 
     planes = []
     for plane in response.json().get("ac", []):
-        if "lat" not in plane or "lon" not in plane:
+        if "lat" not in plane or "lon" not in plane or plane["alt_baro"] == 'ground':
             continue
         distance = geodesic(
             (LATITUDE, LONGITUDE), (plane["lat"], plane["lon"])
@@ -43,7 +43,7 @@ def fetch_local_aircraft():
         # Calculate bearing
         bearing = compute_bearing(LATITUDE, LONGITUDE, plane["lat"], plane["lon"])
 
-        # Grab data from basic map
+        # Grab data from basic file
         plane_data = fetch_plane_data(plane.get("t", ""))
 
         # Only save needed data
@@ -58,7 +58,9 @@ def fetch_local_aircraft():
             "distance_from_source": round(distance, 2),
             "bearing": round(bearing, 1),
             "compass": bearing_to_compass(bearing),
-            "plane_data": plane_data
+            "plane_data": plane_data,
+            "altitude": plane["alt_baro"],
+            "speed": plane["gs"]
         }
         planes.append(clean_plane)
 

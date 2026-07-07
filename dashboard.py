@@ -7,7 +7,7 @@ from main import start_polling, get_latest
 start_polling()
 
 ui.dark_mode().enable()
-ui.colors(primary='#ff780a', secondary='#73bf69', dark='#111217')
+ui.colors(primary="#7806bb", secondary='#73bf69', dark='#111217')
 
 ui.add_head_html('''
 <style>
@@ -110,10 +110,9 @@ def build_radar_svg(planes):
     '''
 
 # Build page
-with ui.card().classes('w-full gap-3 p-4'):
-    ui.label(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 with ui.grid(columns=3).classes('w-full gap-3 p-4'):
     with ui.card().classes('items-center justify-center'):
+        ui.label('AIRLINE').classes('panel-label')
         ui.icon('flight', size='42px').classes('text-white')
         logo_label = ui.label('—').classes('panel-label')
 
@@ -124,8 +123,12 @@ with ui.grid(columns=3).classes('w-full gap-3 p-4'):
         spd_label = ui.label('Speed: —').classes('metric-value')
         alt_label = ui.label('Alt: —').classes('metric-value')
 
-    with ui.card().classes('items-center justify-center p-2'):
-        radar_html = ui.html(build_radar_svg([]))
+# Radar card, depricated bc it doesn't look good with slow updates
+    """ with ui.card().classes('items-center justify-center p-2'):
+        radar_html = ui.html(build_radar_svg([])) """
+    with ui.card():
+        ui.label('ATC').classes('panel-label')
+
 
     with ui.card():
         ui.label('IDENTIFICATION').classes('panel-label')
@@ -157,18 +160,19 @@ with ui.grid(columns=3).classes('w-full gap-3 p-4'):
 def refresh():
     planes, updated_at = get_latest()
 
-    radar_html.content = build_radar_svg(planes)
-    radar_html.update()
+# Radar card, depricated bc it doesn't look good with slow updates
+    """ radar_html.content = build_radar_svg(planes)
+    radar_html.update() """
 
     if planes:
         closest = planes[0]
         pd = closest.get('plane_data') or {}
 
         logo_label.text = closest.get('flight') or closest.get('r') or '—'
-        lat_label.text = f"Lat: {closest['lat']:.4f}"
-        lon_label.text = f"Lon: {closest['lon']:.4f}"
-        spd_label.text = f"Speed: {closest.get('gs', '—')} kt"
-        alt_label.text = f"Alt: {closest.get('alt_baro', '—')} ft"
+        lat_label.text = f"Latitude: {closest['lat']:.4f}"
+        lon_label.text = f"Longitude: {closest['lon']:.4f}"
+        spd_label.text = f"Speed: {closest.get('speed', '—')} kt"
+        alt_label.text = f"Altitude: {closest.get('altitude')} ft" if closest.get('altitude') != 'ground' else 'Altitude: Grounded'
 
         reg_label.text = f"Reg: {closest.get('r') or '—'}"
         flight_label.text = f"Flight: {closest.get('flight') or '—'}"
