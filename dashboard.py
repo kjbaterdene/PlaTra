@@ -2,9 +2,13 @@
 from nicegui import ui
 import math
 from datetime import datetime
-from main import start_polling, get_latest
+from timezonefinder import TimezoneFinder
+import pytz
+from main import start_polling, get_latest, LATITUDE, LONGITUDE
 
 start_polling()
+tf = TimezoneFinder()
+LOCAL_TZ = tf.timezone_at(lat=LATITUDE, lng=LONGITUDE) or "UTC"
 
 ui.dark_mode().enable()
 ui.colors(primary="#7806bb", secondary='#73bf69', dark='#111217')
@@ -111,11 +115,13 @@ def build_radar_svg(planes):
 
 # Build page
 with ui.grid(columns=6).classes('w-full gap-3 p-4'):
+    # Airline Card
     with ui.card().classes('col-span-2'):
-        ui.label('AIRLINE').classes('panel-label')
-        ui.icon('flight', size='42px').classes('text-white')
-        logo_label = ui.label('—').classes('panel-label')
+        ui.label('AIRLINE').classes('panel-label ')
+        ui.icon('flight', size='42px').classes('text-white w-full text-center')
+        logo_label = ui.label('—').classes('w-full text-center')
 
+    # Position Card
     with ui.card().classes('col-span-2'):
         ui.label('POSITION').classes('panel-label')
         lat_label = ui.label('Lat: —').classes('metric-value')
@@ -123,31 +129,45 @@ with ui.grid(columns=6).classes('w-full gap-3 p-4'):
         spd_label = ui.label('Speed: —').classes('metric-value')
         alt_label = ui.label('Alt: —').classes('metric-value')
 
-# Radar card, depricated bc it doesn't look good with slow updates
+    # Radar card, depricated bc it doesn't look good with slow updates
     """ with ui.card().classes('items-center justify-center p-2'):
         radar_html = ui.html(build_radar_svg([])) """
+    
+    # ATC (Local user) card
     with ui.card().classes('col-span-2 row-span-2'):
         ui.label('ATC').classes('panel-label')
+        clock_label = ui.label('—').classes('text-white big-heading w-full text-center')
+        date_label = ui.label('—').classes('metric-value')
+        timezone_label = ui.label('—').classes('metric-value')
+        #
+        #closest_airport_label.text = 
+        #searched_radius = 
+        #time_since_update = 
 
-    with ui.card().classes('items-center justify-center'):
+
+    # Look card
+    with ui.card():
         ui.label('LOOK').classes('panel-label')
-        heading_label = ui.label('N').classes('big-heading')
+        heading_label = ui.label('N').classes('big-heading w-full text-center')
 
+    # Identification card
     with ui.card():
         ui.label('IDENTIFICATION').classes('panel-label')
         reg_label = ui.label('Reg: —').classes('metric-value')
         flight_label = ui.label('Flight: —').classes('metric-value')
 
+    # Aircraft card
     with ui.card().classes('col-span-2'):
         ui.label('AIRCRAFT').classes('panel-label')
-        mfr_label = ui.label('Mfr: —').classes('metric-value')
         model_label = ui.label('Model: —').classes('metric-value')
         eng_label = ui.label('Engine: —').classes('metric-value')
+        class_label = ui.label('Class: —').classes('metric-value')
+        weight_label = ui.label('Weight: —').classes('metric-value')
 
 
-
+    # Nearby aircraft table card
     with ui.card().classes('col-span-full'):
-        ui.label('5 CLOSEST AIRCRAFT').classes('panel-label')
+        ui.label('NEARBY AIRCRAFT').classes('panel-label')
         columns = [
             {'name': 'flight', 'label': 'Flight', 'field': 'flight', 'align': 'left'},
             {'name': 'r', 'label': 'Reg', 'field': 'r', 'align': 'left'},
@@ -161,7 +181,7 @@ with ui.grid(columns=6).classes('w-full gap-3 p-4'):
 def refresh():
     planes, updated_at = get_latest()
 
-# Radar card, depricated bc it doesn't look good with slow updates
+    # Radar card, depricated bc it doesn't look good with slow updates
     """ radar_html.content = build_radar_svg(planes)
     radar_html.update() """
 
@@ -169,31 +189,50 @@ def refresh():
         closest = planes[0]
         pd = closest.get('plane_data') or {}
 
+        # Airline card
         logo_label.text = closest.get('flight') or closest.get('r') or '—'
+        
+        # Position card
         lat_label.text = f"Latitude: {closest['lat']:.4f}"
         lon_label.text = f"Longitude: {closest['lon']:.4f}"
         spd_label.text = f"Speed: {closest.get('speed', '—')} kt"
         alt_label.text = f"Altitude: {closest.get('altitude')} ft" if closest.get('altitude') != 'ground' else 'Altitude: Grounded'
 
+        # ATC card
+        now = datetime.now(pytz.timezone(LOCAL_TZ))
+        clock_label.text = now.strftime("%H:%M:%S")
+        date_label.text = f'Date: {now.strftime("%B %d, %Y")}'
+        timezone_label.text = f'Timezone: {LOCAL_TZ}'
+        
+        #closest_airport_label.text = 
+        #searched_radius = 
+        #time_since_update = 
+
+
+        # Look card
+        heading_label.text = closest.get('compass', 'N')
+
+        # Identification card
         reg_label.text = f"Reg: {closest.get('r') or '—'}"
         flight_label.text = f"Flight: {closest.get('flight') or '—'}"
 
+        # Aircraft card
         model_label.text = f"Model: {pd.get('name', '—').title() or '—'}"
-        mfr_label.text = f"Manufacturer: {pd.get('manufacturer', '—') or '—'}"
         eng_label.text = f"Engine: {pd.get('engine', '—') or '—'}"
+        class_label.text = f"Class: {pd.get('class', '—') or '—'}"
+        weight_label.text = f"Weight: {pd.get('weight', '—') or '—'}"
 
-        heading_label.text = closest.get('compass', 'N')
+        # Nearby aircraft table card
+        rows = []
+        for p in planes:
+            row = dict(p)
+            pd = p.get('plane_data') or {}
+            row['name'] = pd.get('name', '—')
+            rows.append(row)
+        table.rows = rows
+        table.update()
 
-    rows = []
-    for p in planes[:5]:
-        row = dict(p)
-        pd = p.get('plane_data') or {}
-        row['name'] = pd.get('name', '—')
-        rows.append(row)
-    table.rows = rows
-    table.update()
 
-
-ui.timer(2.0, refresh)
+ui.timer(.5, refresh)
 
 ui.run(title='Aircraft Tracker', dark=True, show=False)

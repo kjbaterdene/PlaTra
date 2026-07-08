@@ -34,7 +34,7 @@ def fetch_local_aircraft():
 
     planes = []
     for plane in response.json().get("ac", []):
-        if "lat" not in plane or "lon" not in plane or plane["alt_baro"] == 'ground':
+        if "lat" not in plane or "lon" not in plane or plane.get("alt_baro") == 'ground':
             continue
         distance = geodesic(
             (LATITUDE, LONGITUDE), (plane["lat"], plane["lon"])
@@ -52,15 +52,15 @@ def fetch_local_aircraft():
             "flight": str(plane.get("flight", "")).strip(),
             "r": plane.get("r", ""),
             "t": plane.get("t", ""),
-            "lat": plane["lat"],
-            "lon": plane["lon"],
+            "lat": plane.get("lat"),
+            "lon": plane.get("lon"),
             "true_heading": plane.get("true_heading", ""),
             "distance_from_source": round(distance, 2),
             "bearing": round(bearing, 1),
             "compass": bearing_to_compass(bearing),
             "plane_data": plane_data,
-            "altitude": plane["alt_baro"],
-            "speed": plane["gs"]
+            "altitude": plane.get("alt_baro"),
+            "speed": plane.get("gs")
         }
         planes.append(clean_plane)
 
@@ -86,13 +86,12 @@ def fetch_plane_data(icao):
     basic_data = BASIC_DB.get(icao)
     extensive_data = EXT_DB.get(icao)
     if basic_data:
-        plane_data['name'] = basic_data["Model_FAA"]
-        plane_data['manufacturer'] = basic_data["Manufacturer"]
+        plane_data['name'] = basic_data["Model_FAA"].title() 
         plane_data['engine'] = f"{basic_data["Physical_Class_Engine"]} ({basic_data["Num_Engines"]})"
-        plane_data['class'] = basic_data["Class"]
-        plane_data['Weight'] = basic_data["FAA_Weight"]
+        plane_data['class'] = basic_data["Class"].title() 
+        plane_data['weight'] = basic_data["FAA_Weight"].title() 
     elif extensive_data and extensive_data.get("model"):
-        plane_data['name'] = extensive_data["model"]
+        plane_data['name'] = extensive_data["model"].title() 
     
     return plane_data
     
