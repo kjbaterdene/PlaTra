@@ -134,15 +134,11 @@ with ui.grid(columns=6).classes('w-full gap-3 p-4'):
         radar_html = ui.html(build_radar_svg([])) """
     
     # ATC (Local user) card
-    with ui.card().classes('col-span-2 row-span-2'):
+    with ui.card().classes('col-span-2'):
         ui.label('ATC').classes('panel-label')
         clock_label = ui.label('—').classes('text-white big-heading w-full text-center')
         date_label = ui.label('—').classes('metric-value')
         timezone_label = ui.label('—').classes('metric-value')
-        #
-        #closest_airport_label.text = 
-        #searched_radius = 
-        #time_since_update = 
 
 
     # Look card
