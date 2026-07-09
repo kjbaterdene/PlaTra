@@ -1,4 +1,4 @@
-# app.py
+#!/usr/bin/env -S uv run
 from nicegui import ui
 import math
 from datetime import datetime
